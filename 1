@@ -1,0 +1,117 @@
+package Main;
+
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
+
+public class Main {
+
+	private static Connection conn; // why static? it is mandatory bc the main function uses the word static. if your method is static, then your variable must be static
+	
+	public static void main(String[] args) throws SQLException  {
+
+		final String connectionStr = "jdbc:mysql://localhost:3306/employees";		//first thing you see in Mysql workbench when you open it is the port number and host
+		
+		try { //anything inside try methods are not visible outside the try block (THE BLOCKSCOPE)
+			
+			conn = DriverManager.getConnection(connectionStr, "root", "Burwell83"); //driverManager is a class, we need to access it in a object
+			System.out.println("Successfully connected to DB!");
+			
+		} catch (SQLException e) {
+			System.out.println("Error!");
+			e.printStackTrace();
+		}
+	// selectAllEmployees();
+		// selectEmployee("10023");
+//		getCountBySalaryAmount();
+	finally { //is the block that is going to be always executed whether there is an exception or not (used with try catch typically)
+			// I want this piece of code whether there is an exception or not
+			// you want you want this code to execute to run no matter what
+			// clean up stuff generally goes in finally block
+			//We are going to close our connnection here
+			System.out.println("Closing DB connection");
+		conn.close(); 
+			System.out.println("Successfullly closed DB connection");
+		}
+	}
+
+	public static void selectAllEmployees() {
+		final String query = "SELECT * FROM employees LIMIT 500";
+		try {
+			Statement statement = conn.createStatement();
+			statement.executeQuery(query);
+			ResultSet rs = statement.executeQuery(query); //ResultSet is what stores our data, it is a collection of rows and columns. We need a loop to go through all of them. 
+			while (rs.next()) { //this will loop through our query result. If there is a record coming, it will return true. If this is the last record, it will return false because there is nothing after this. Loop until connection has ended
+				System.out.println(rs.getInt(1) + " " + rs.getString(2) + " " + rs.getString("first_name"));  //get methods are getting data from a column.  What are my columns when I run this query? That is how we need to request that data from the get method
+								      //getting our first column (getInt bc employeeID is an int), 
+			
+			}
+		} catch (SQLException e) {
+			System.out.println("Error occuered in SelectAllEmployees()");
+			e.printStackTrace();
+		}
+}
+	public static void selectEmployee(String employeeNbr) {
+		final String query = "SELECT * FROM employees WHERE emp_no = ?"; //? can also be called a placeholder (parameter)
+		
+																		//When you have parameters, you cannot use createStatement (cannot pass in anything). 
+																		// We must use PreparedStatement
+		try {
+			PreparedStatement ps = conn.prepareStatement(query);
+			ps.setString(1, employeeNbr); //we are trying to pass in the data to sql, we are setting the data. We are tyring to pass in employeeNbr
+						//index, what is the parameter (such as if you had emp_no = ? AND first_name = "?";
+			ResultSet rs = ps.executeQuery()	;
+			while(rs.next()) {
+				System.out.println(rs.getInt("emp_no") + " " + rs.getString("birth_date") + " " + rs.getString("first_name"));
+			}
+		} catch (SQLException e) {
+			System.out.println("Error occurred in ");
+			e.printStackTrace();
+		}
+	}
+	
+	//Stored procedures: how do you call those from Java? - called preparedCall
+	
+	//Stored procedures are called using CallableStatement
+	
+	//How do put in and out parameters in our stored procs?
+	public static void getCountBySalaryAmount() { // this has in and out, so we will have placeholders
+		final String query = "{CALL GetCountBySalaryAmount(?,?,?)}";
+		
+		try {
+		CallableStatement cs = conn.prepareCall(query);
+		cs.setInt(1, 60000); //IN PARAMETER IN MYSQL
+		cs.registerOutParameter(2, Types.INTEGER); //OUT PARAMETER IN MYSQL
+		cs.registerOutParameter(3, Types.INTEGER); // INOUT PARAMETER MYSQL
+		cs.executeUpdate();
+		
+		ResultSet rs = cs.executeQuery();
+		
+		int total = cs.getObject(2,Integer.class); //when u say getObject, you have to specify what you want to return
+		int rank = cs.getObject(3, Integer.class);
+		
+		System.out.println("Total:" + total);
+		System.out.println("Rank" + rank);
+	}
+		catch (SQLException e) {
+			System.out.println("Error occured in getCountBySalaryAmount()");
+		}
+	
+	
+	
+	//createstatement (want to just view data), prepared statement (want to pass in things), callablestatement
+	
+	
+	
+	
+	
+	
+	
+	
+}
+}
